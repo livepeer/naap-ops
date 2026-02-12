@@ -1,0 +1,6 @@
+.DS_Store
+*.swp
+*.swo
+*~
+doc_body.txt
+openrouter_out.txt
