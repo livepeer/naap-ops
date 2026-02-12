@@ -37,7 +37,7 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const mentions = (process.env.CONTRIBUTORS_MENTIONS || '').trim().split(/\s+/).filter(B).join('\n');
+            const mentions = (process.env.CONTRIBUTORS_MENTIONS || '').trim().split(/\s+/).filter(Boolean).join('\n');
             const repo = process.env.GITHUB_REPOSITORY || '';
             const template = fs.readFileSync('.github/meeting-issue-template.md', 'utf8');
             const body = template
