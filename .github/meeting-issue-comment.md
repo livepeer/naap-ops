@@ -9,9 +9,9 @@ Reply **before the meeting** with:
 
 ### No agenda = no air time.
 
-## Examlpe
+## Example
 
-### Check in 
+### Check in
 At risk
 
 ### Progress
