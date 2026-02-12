@@ -14,7 +14,7 @@ Project management and operations for the NAAP initiative across repos and orgs.
 
 | Meeting | Agenda | Notes |
 |---------|--------|--------|
-| **Weekly sync** | Agenda created automatically as a GitHub issue (Mondays 9:00 UTC). Contributors are tagged to post progress and questions. No Agenda = No Air Time | Add notes in [meeting-notes/](meeting-notes/); link from the issue. |
+| **Weekly sync** | Agenda created automatically as a GitHub issue (Mondays 9:00 UTC). Contributors are tagged to post progress and questions. No Agenda = No Air Time | Add notes in [meeting-notes/](meeting-notes/); link from the issue. Meetings will be held [here](https://meet.google.com/qjy-fxrn-sft) |
 | **Other meetings** | Open a GitHub issue for the meeting. | Add the meeting note in `meeting-notes/`, then close the issue (e.g. with a comment linking to the note). Any decisions from the meeting go in [decisions/](decisions/). |
 
 ## Workflows
