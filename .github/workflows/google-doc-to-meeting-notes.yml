@@ -16,6 +16,7 @@ on:
 permissions:
   contents: write
   issues: write
+  pull-requests: write
 
 jobs:
   convert:
@@ -125,38 +126,68 @@ jobs:
             echo "Transcript section not found; see transcript.md.raw.txt" > "$transcript_file"
           fi
 
-      - name: Commit and push
+      - name: Create branch, commit and push
+        id: push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           folder="${{ steps.issue.outputs.folder }}"
+          issue="${{ inputs.issue_number }}"
+          branch="meeting-notes/issue-${issue}"
+          git checkout -b "$branch"
           git add "meeting-notes/${folder}/"
-          git status
           if git diff --staged --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
             echo "No changes to commit."
           else
-            git commit -m "meeting-notes: add summary and transcript for #${{ inputs.issue_number }}"
-            git push
+            git commit -m "meeting-notes: add summary and transcript for #${issue}"
+            git push -u origin "$branch"
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "branch=${branch}" >> $GITHUB_OUTPUT
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Comment on issue
-        if: success()
+      - name: Create PR
+        if: steps.push.outputs.changed == 'true'
+        id: pr
         uses: actions/github-script@v7
         with:
           script: |
             const issueNumber = Number(process.env.ISSUE_NUMBER);
             const folder = process.env.FOLDER;
+            const branch = process.env.BRANCH;
             const repo = context.repo;
-            const summary = `meeting-notes/${folder}/summary.md`;
-            const transcript = `meeting-notes/${folder}/transcript.md`;
-            const body = `Meeting notes added:\n- [summary](${summary})\n- [transcript](${transcript})`;
-            await github.rest.issues.createComment({
+            const defaultBranch = context.payload.repository.default_branch;
+            const body = `Adds meeting notes for this meeting.
+
+            - [summary](meeting-notes/${folder}/summary.md)
+            - [transcript](meeting-notes/${folder}/transcript.md)
+
+            Closes #${issueNumber}`;
+            const { data } = await github.rest.pulls.create({
               ...repo,
+              head: branch,
+              base: defaultBranch,
+              title: `Meeting notes for #${issueNumber}`,
+              body,
+            });
+            core.setOutput('url', data.html_url);
+            core.setOutput('number', data.number);
+
+      - name: Comment on issue
+        if: steps.push.outputs.changed == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueNumber = Number(process.env.ISSUE_NUMBER);
+            const prUrl = process.env.PR_URL;
+            const body = `Meeting notes PR opened. Merge it to add the notes and close this issue.\n\n${prUrl}`;
+            await github.rest.issues.createComment({
+              ...context.repo,
               issue_number: issueNumber,
               body,
             });
         env:
           ISSUE_NUMBER: ${{ inputs.issue_number }}
-          FOLDER: ${{ steps.issue.outputs.folder }}
+          PR_URL: ${{ steps.pr.outputs.url }}

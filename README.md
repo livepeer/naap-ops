@@ -20,4 +20,4 @@ Project management and operations for the NAAP initiative across repos and orgs.
 ## Usage
 
 - **Single source of truth**: Cross-repo context lives here; code stays in respective repos.
-- **Decisions**: One file per decision in `decisions/`.
+- **Decisions**: One file per decision in `decisions/`. See [docs/workflows.md](docs/workflows.md) for workflow setup (including secrets).
