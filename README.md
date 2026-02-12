@@ -18,7 +18,7 @@ Project management and operations for the NAAP initiative across repos and orgs.
 | **Other meetings** | Open a GitHub issue for the meeting. | Add the meeting note in `meeting-notes/`, then close the issue (e.g. with a comment linking to the note). Any decisions from the meeting go in [decisions/](decisions/). |
 
 ## Workflows
-
+Access workflows in Github Actions.
 | Workflow | What it does |
 |----------|--------------|
 | **Weekly meeting issue** | Mondays 9:00 UTC: creates a meeting issue and a comment that tags contributors to post progress and questions (no questions = no air time). |
