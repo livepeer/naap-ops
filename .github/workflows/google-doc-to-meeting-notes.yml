@@ -129,12 +129,17 @@ jobs:
       - name: Create branch, commit and push
         id: push
         run: |
+          set -e
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           folder="${{ steps.issue.outputs.folder }}"
           issue="${{ inputs.issue_number }}"
-          branch="meeting-notes/issue-${issue}"
-          git checkout -b "$branch"
+          run_id="${{ github.run_id }}"
+          branch="meeting-notes/issue-${issue}-${run_id}"
+          base="${{ github.event.repository.default_branch }}"
+          [ -z "$base" ] && base=main
+          git fetch origin "$base"
+          git checkout -b "$branch" "origin/${base}"
           git add "meeting-notes/${folder}/"
           if git diff --staged --quiet; then
             echo "changed=false" >> $GITHUB_OUTPUT
@@ -174,6 +179,10 @@ jobs:
             });
             core.setOutput('url', data.html_url);
             core.setOutput('number', data.number);
+        env:
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+          FOLDER: ${{ steps.issue.outputs.folder }}
+          BRANCH: ${{ steps.push.outputs.branch }}
 
       - name: Comment on issue
         if: steps.push.outputs.changed == 'true'
