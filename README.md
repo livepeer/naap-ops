@@ -1,6 +1,8 @@
 # naap-ops
 
-Project management and operations for the NAAP initiative across repos and orgs.
+Central place for Network-as-a-Product operations. This repo holds decisions, docs, and meeting notes so the team and AI agents have a single source of truth. Workflows capture meeting notes and notify contributors (e.g. weekly sync issues). See the sections below for structure, meetings, and workflows.
+
+---
 
 ## Structure
 
@@ -14,7 +16,7 @@ Project management and operations for the NAAP initiative across repos and orgs.
 
 | Meeting | Agenda | Notes |
 |---------|--------|--------|
-| **Weekly sync** | Agenda created automatically as a GitHub issue (Mondays 9:00 UTC). Contributors are tagged to post progress and questions. No Agenda = No Air Time | Add notes in [meeting-notes/](meeting-notes/); link from the issue.  |
+| **Weekly sync** | Agenda created automatically as a GitHub issue (Mondays 9:00 UTC). Contributors are tagged to post progress and questions. No Agenda = No Air Time | Add notes in [meeting-notes/](meeting-notes/); link from the issue. Weekly sync is scheduled for Tuesdays at 5pm GMT. Join [here](https://meet.google.com/qjy-fxrn-sft?authuser=0&hs=122&ijlm=1770912842702)  |
 | **Other meetings** | Open a GitHub issue for the meeting. | Add the meeting note in `meeting-notes/`, then close the issue (e.g. with a comment linking to the note). Any decisions from the meeting go in [decisions/](decisions/). |
 
 ## Workflows
@@ -30,3 +32,4 @@ Details and setup (e.g. secrets): [docs/workflows.md](docs/workflows.md).
 
 - **Single source of truth**: Cross-repo context lives here; code stays in respective repos.
 - **Decisions**: One file per decision in `decisions/`.
+- **AI-friendly**: Flat structure and markdown so agents can read and reason over the same info as humans.

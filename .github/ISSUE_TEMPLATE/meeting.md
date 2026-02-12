@@ -6,6 +6,8 @@ labels: meeting
 assignees: ''
 
 ---
+### Attendees
+*tag the contrubutors that must attend*
 
 ### Agenda
 *What are the topics to be discussed?*
