@@ -1,0 +1,162 @@
+# Converts a public Google Doc (with Summary and Transcript) into two MD files in meeting-notes/.
+# Uses OpenRouter google/gemini-2.5-flash-lite. Requires OPENROUTER_API_KEY repo secret.
+name: Google Doc → Meeting notes
+on:
+  workflow_dispatch:
+    inputs:
+      google_doc_url:
+        description: 'Public Google Doc URL (must be viewable by anyone with the link)'
+        required: true
+        type: string
+      issue_number:
+        description: 'Meeting issue number (e.g. 42)'
+        required: true
+        type: number
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get issue title
+        id: issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueNumber = Number(process.env.ISSUE_NUMBER);
+            const { data } = await github.rest.issues.get({
+              ...context.repo,
+              issue_number: issueNumber,
+            });
+            const title = data.title || ('issue-' + issueNumber);
+            const folder = title
+              .toLowerCase()
+              .replace(/\s+/g, '-')
+              .replace(/[^a-z0-9.-]/g, '')
+              .replace(/-+/g, '-')
+              .replace(/^-|-$/g, '')
+              .slice(0, 80) || ('issue-' + issueNumber);
+            core.setOutput('title', title);
+            core.setOutput('folder', folder);
+        env:
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+
+      - name: Get document ID
+        id: doc
+        run: |
+          url="${{ inputs.google_doc_url }}"
+          if [[ "$url" =~ /d/([a-zA-Z0-9_-]+) ]]; then
+            echo "doc_id=${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
+          else
+            echo "::error::Invalid Google Doc URL (expected /d/DOCUMENT_ID/)"
+            exit 1
+          fi
+
+      - name: Fetch Google Doc
+        run: |
+          doc_id="${{ steps.doc.outputs.doc_id }}"
+          url="https://docs.google.com/document/d/${doc_id}/export?format=txt"
+          echo "Fetching doc..."
+          curl -sL --fail -o doc_body.txt "$url" || { echo "::error::Could not fetch doc. Ensure it is shared as 'Anyone with the link can view'."; exit 1; }
+
+      - name: Convert to markdown via OpenRouter
+        run: |
+          python3 << 'PY'
+          import json, os, urllib.request
+          with open("doc_body.txt") as f:
+            body = f.read()
+          if len(body) > 90000:
+            body = body[:90000] + "\n[Content truncated for length.]"
+          prompt = """The following text was exported from a Google Doc that has a Summary section and a Transcript section. Convert it into two clean markdown documents. Output ONLY the following, with no other text before or after:
+
+          ---SUMMARY---
+          (full markdown for the summary section only)
+
+          ---TRANSCRIPT---
+          (full markdown for the transcript section only)
+
+          Document content:
+          """ + body
+          payload = {"model": "google/gemini-2.5-flash-lite", "messages": [{"role": "user", "content": prompt}]}
+          req = urllib.request.Request(
+            "https://openrouter.ai/api/v1/chat/completions",
+            data=json.dumps(payload).encode(),
+            headers={"Content-Type": "application/json", "Authorization": "Bearer " + os.environ["OPENROUTER_API_KEY"]},
+            method="POST",
+          )
+          try:
+            with urllib.request.urlopen(req, timeout=120) as r:
+              out = json.load(r)
+          except urllib.error.HTTPError as e:
+            print("::error::OpenRouter API error (" + str(e.code) + "):", e.read().decode())
+            raise SystemExit(1)
+          text = (out.get("choices") or [{}])[0].get("message", {}).get("content", "")
+          if not text:
+            print("::error::No content in OpenRouter response")
+            raise SystemExit(1)
+          with open("openrouter_out.txt", "w") as f:
+            f.write(text)
+          print("OpenRouter OK, output length:", len(text))
+          PY
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+
+      - name: Write summary and transcript files
+        run: |
+          folder="${{ steps.issue.outputs.folder }}"
+          dir="meeting-notes/${folder}"
+          mkdir -p "$dir"
+          summary_file="${dir}/summary.md"
+          transcript_file="${dir}/transcript.md"
+          sed -n '/---SUMMARY---/,/---TRANSCRIPT---/p' openrouter_out.txt | sed '1d;$d' | sed 's/^[[:space:]]*//' > "$summary_file"
+          sed -n '/---TRANSCRIPT---/,$p' openrouter_out.txt | sed '1d' | sed 's/^[[:space:]]*//' > "$transcript_file"
+          if [ ! -s "$summary_file" ]; then
+            cp openrouter_out.txt "${summary_file}.raw.txt"
+            echo "Summary section not found; see summary.md.raw.txt" > "$summary_file"
+          fi
+          if [ ! -s "$transcript_file" ]; then
+            cp openrouter_out.txt "${transcript_file}.raw.txt"
+            echo "Transcript section not found; see transcript.md.raw.txt" > "$transcript_file"
+          fi
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          folder="${{ steps.issue.outputs.folder }}"
+          git add "meeting-notes/${folder}/"
+          git status
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "meeting-notes: add summary and transcript for #${{ inputs.issue_number }}"
+            git push
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on issue
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueNumber = Number(process.env.ISSUE_NUMBER);
+            const folder = process.env.FOLDER;
+            const repo = context.repo;
+            const summary = `meeting-notes/${folder}/summary.md`;
+            const transcript = `meeting-notes/${folder}/transcript.md`;
+            const body = `Meeting notes added:\n- [summary](${summary})\n- [transcript](${transcript})`;
+            await github.rest.issues.createComment({
+              ...repo,
+              issue_number: issueNumber,
+              body,
+            });
+        env:
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+          FOLDER: ${{ steps.issue.outputs.folder }}
