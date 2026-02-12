@@ -1,8 +1,10 @@
 ---
 name: Meeting
 about: Agenda and next steps for any meeting
-description: Agenda and next steps for any meeting
-title: "Meeting — "
+title: 'Meeting — '
+labels: meeting
+assignees: ''
+
 ---
 
 ### Agenda
@@ -15,4 +17,4 @@ title: "Meeting — "
 *What are the key follow up actions*
 - 
 - 
-- 
+-
