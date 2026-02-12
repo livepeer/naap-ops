@@ -1,0 +1,54 @@
+# Creates a weekly meeting issue every Monday 9am UTC.
+# Contributors are tagged to post progress + questions; no questions = no air time.
+name: Weekly meeting issue
+on:
+  schedule:
+    - cron: '0 9 * * 1'
+  workflow_dispatch: {}  # allow manual run
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  create-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read contributors
+        id: contributors
+        run: |
+          path='.github/meeting-contributors.txt'
+          if [ ! -f "$path" ]; then
+            echo "::error::Missing $path (one @username per line)"
+            exit 1
+          fi
+          # One handle per line (with or without @); comments and blank lines ignored
+          mentions=$(grep -v '^[[:space:]]*#' "$path" | grep -v '^[[:space:]]*$' | sed 's/^[[:space:]]*//;s/[[:space:]].*//' | sed 's/^@*/@/' | paste -sd ' ')
+          echo "mentions<<EOF" >> $GITHUB_OUTPUT
+          printf '%s' "$mentions" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create meeting issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const mentions = (process.env.CONTRIBUTORS_MENTIONS || '').trim().split(/\s+/).filter(B).join('\n');
+            const repo = process.env.GITHUB_REPOSITORY || '';
+            const template = fs.readFileSync('.github/meeting-issue-template.md', 'utf8');
+            const body = template
+              .replace('{{CONTRIBUTORS}}', mentions)
+              .replace('REPO', repo);
+            const date = new Date().toISOString().slice(0, 10);
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Weekly sync — ${date}`,
+              body,
+            });
+        env:
+          CONTRIBUTORS_MENTIONS: ${{ steps.contributors.outputs.mentions }}

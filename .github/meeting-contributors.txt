@@ -1,0 +1,7 @@
+# People to tag in the weekly meeting issue. One GitHub username per line.
+# Use @username or just username. Lines starting with # are ignored.
+#
+# Example:
+# alice
+# @bob
+# charlie
