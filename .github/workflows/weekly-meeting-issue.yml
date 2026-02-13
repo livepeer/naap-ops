@@ -39,7 +39,9 @@ jobs:
             const fs = require('fs');
             const mentions = (process.env.CONTRIBUTORS_MENTIONS || '').trim().split(/\s+/).filter(Boolean).join('\n');
             const repo = process.env.GITHUB_REPOSITORY || '';
-            const date = new Date().toISOString().slice(0, 10);
+            const d = new Date();
+            d.setUTCDate(d.getUTCDate() + 1);
+            const date = d.toISOString().slice(0, 10);
             let issueBody = fs.readFileSync('.github/ISSUE_TEMPLATE/meeting.md', 'utf8');
             const fm = issueBody.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n/);
             if (fm) issueBody = issueBody.slice(fm[0].length).trim();
