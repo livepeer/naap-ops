@@ -17,6 +17,18 @@ GitHub Actions workflows in this repo and how to use them.
 
 ---
 
+## Weekly sync agenda
+
+**File:** `.github/workflows/weekly-sync-agenda.yml`
+
+**What it does:** Runs **Monday 16:00 UTC** (and on manual run). Finds the open weekly sync issue (created that morning), sends **all comments** to OpenRouter (**google/gemini-2.5-flash-lite**), and asks the model to extract **discussion points** (topics that need air time). It then **edits the issue body** and replaces the “### Agenda” section with that list. Bot comments are skipped.
+
+**Inputs:** None (scheduled) or trigger manually from **Actions → Weekly sync agenda → Run workflow**.
+
+**Setup:** Same as Google Doc → Meeting notes: **OPENROUTER_API_KEY** repo secret (see above).
+
+---
+
 ## Google Doc → Meeting notes
 
 **File:** `.github/workflows/google-doc-to-meeting-notes.yml`

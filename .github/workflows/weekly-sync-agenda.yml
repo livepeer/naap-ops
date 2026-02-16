@@ -1,0 +1,93 @@
+# Runs Monday 4pm UTC. Finds the weekly sync issue, sends all comments to AI to extract
+# discussion points, then updates the issue body with those agenda items (edits the issue).
+name: Weekly sync agenda
+on:
+  schedule:
+    - cron: '0 16 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+
+jobs:
+  update-agenda:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract discussion points and update issue body
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner,
+              repo,
+              state: 'open',
+              sort: 'created',
+              direction: 'desc',
+              per_page: 20,
+            });
+            const weeklySync = issues.find(i => i.title.startsWith('Weekly sync —'));
+            if (!weeklySync) {
+              console.log('No open "Weekly sync —" issue found.');
+              return;
+            }
+            const { data: comments } = await github.rest.issues.listComments({
+              owner,
+              repo,
+              issue_number: weeklySync.number,
+            });
+            const botLogins = ['github-actions[bot]', 'github-actions'];
+            const userComments = comments.filter(c => !botLogins.includes(c.user?.login || ''));
+            if (userComments.length === 0) {
+              console.log('No user comments; skipping agenda update.');
+              return;
+            }
+            const commentsText = userComments.map(c => {
+              const author = c.user?.login ? `@${c.user.login}` : 'Someone';
+              return `---\n**${author}:**\n${(c.body || '').trim()}`;
+            }).join('\n\n');
+            const prompt = `You are given comments from a meeting prep issue. People post updates and discussion points before the meeting.
+
+Extract only the DISCUSSION POINTS / TOPICS that should go on the meeting agenda (things that need air time or decisions). Ignore pure status updates or check-ins. Output a markdown bullet list: one line per agenda item, each line starting with "- ". No other text, no intro, no explanation.
+
+Comments:
+${commentsText.slice(0, 30000)}`;
+            const apiKey = process.env.OPENROUTER_API_KEY;
+            if (!apiKey) {
+              throw new Error('OPENROUTER_API_KEY secret is required for weekly-sync-agenda.');
+            }
+            const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+              body: JSON.stringify({
+                model: 'google/gemini-2.5-flash-lite',
+                messages: [{ role: 'user', content: prompt }],
+              }),
+            });
+            if (!res.ok) {
+              throw new Error('OpenRouter API error: ' + res.status + ' ' + await res.text());
+            }
+            const data = await res.json();
+            const raw = (data.choices?.[0]?.message?.content || '').trim();
+            const lines = raw.split(/\r?\n/).filter(l => l.trim().startsWith('- '));
+            const agendaList = lines.length ? lines.join('\n') : '- \n- \n-';
+            const body = weeklySync.body || '';
+            const agendaHeader = '*What are the topics to be discussed?*';
+            const agendaBlock = `### Agenda\n\n${agendaHeader}\n${agendaList}`;
+            const agendaStart = body.indexOf('### Agenda');
+            const nextStepsStart = body.indexOf('### Next Steps');
+            if (agendaStart === -1 || nextStepsStart === -1) {
+              console.log('Issue body missing ### Agenda or ### Next Steps; skipping.');
+              return;
+            }
+            const newBody = body.slice(0, agendaStart) + agendaBlock + '\n\n' + body.slice(nextStepsStart);
+            await github.rest.issues.update({
+              owner,
+              repo,
+              issue_number: weeklySync.number,
+              body: newBody,
+            });
+            console.log('Updated issue #' + weeklySync.number + ' with agenda from ' + userComments.length + ' comments.');
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
