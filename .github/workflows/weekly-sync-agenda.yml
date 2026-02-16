@@ -71,7 +71,7 @@ jobs:
             const participants = [...new Set(userComments.map(c => c.user?.login).filter(Boolean))].sort();
             const mentionRe = /@([a-zA-Z0-9][a-zA-Z0-9-]*)/g;
             const mentioned = new Set();
-            userComments.forEach(c => { for (const m of (c.body || '').matchAll(mentionRe)) mentioned.add(m[1]); });
+            comments.forEach(c => { for (const m of (c.body || '').matchAll(mentionRe)) mentioned.add(m[1]); });
             const mentionedNotParticipated = [...mentioned].filter(login => !participants.includes(login)).sort();
             const participantsList = participants.length ? participants.map(l => '- ' + l).join('\n') : '-';
             const nonParticipantsList = mentionedNotParticipated.length ? mentionedNotParticipated.map(l => '- ' + l).join('\n') : '-';
