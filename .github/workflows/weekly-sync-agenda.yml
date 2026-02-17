@@ -77,7 +77,7 @@ jobs:
             const nonParticipantsList = mentionedNotParticipated.length ? mentionedNotParticipated.map(l => '- ' + l).join('\n') : '-';
             const body = weeklySync.body || '';
             const agendaHeader = '*What are the topics to be discussed?*';
-            const agendaBlock = `### Agenda\n\n${agendaHeader}\n${agendaList}\n\n### Participants\n${participantsList}\n\n### Mentioned but did not participate\n${nonParticipantsList}`;
+            const agendaBlock = `### Agenda\n\n${agendaHeader}\n${agendaList}\n\n### Participants in posting update/agenda\n${participantsList}\n\n### Mentioned but did not participate in posting updates/agenda\n${nonParticipantsList}`;
             const agendaStart = body.indexOf('### Agenda');
             const nextStepsStart = body.indexOf('### Next Steps');
             if (agendaStart === -1 || nextStepsStart === -1) {
