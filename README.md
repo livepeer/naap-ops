@@ -24,7 +24,7 @@ Access workflows in Github Actions.
 | Workflow | What it does |
 |----------|--------------|
 | **Weekly meeting issue** | Mondays 9:00 UTC: creates a meeting issue and a comment that tags contributors to post progress and questions (no questions = no air time). |
-| **Weekly sync agenda** | Mondays 16:00 UTC: finds that week’s weekly sync issue, reads all comments, and updates the issue body with agenda items from those comments. |
+| **Weekly sync agenda** | Tuesdays 16:00 UTC: finds that week’s weekly sync issue, reads all comments, and updates the issue body with agenda items from those comments. |
 | **Google Doc → Meeting notes** | Manual run: give a public Google Doc URL and issue number → creates a PR that adds `meeting-notes/{issue-title}/summary.md` and `transcript.md` (Closes the issue when merged). |
 
 Details and setup (e.g. secrets): [docs/workflows.md](docs/workflows.md).

@@ -1,9 +1,9 @@
-# Runs Monday 4pm UTC. Finds the weekly sync issue, sends all comments to AI to extract
+# Runs Tuesday 4pm UTC. Finds the weekly sync issue, sends all comments to AI to extract
 # discussion points, then updates the issue body with those agenda items (edits the issue).
 name: Weekly sync agenda
 on:
   schedule:
-    - cron: '0 16 * * 1'
+    - cron: '0 16 * * 2'
   workflow_dispatch: {}
 
 permissions:
